@@ -430,14 +430,18 @@ void usercontrol(void) {
     // ..........................................................................
     // intake/roller
     // ..........................................................................
-    if (gamers.ButtonR2.pressing()) {
-      spinny.spin(forward, 100, percent);
-    } else if (gamers.ButtonR1.pressing()) {
-      spinny.spin(reverse, 100, percent);
-    } else if (gamers.ButtonA.pressing()) {
-      spinny.stop(coast);
+    if(spinny.velocity(pct) < 10) {
+      if (gamers.ButtonL2.pressing()) {
+        spinny.spin(forward, 100, percent);
+      } else if (gamers.ButtonL1.pressing()) {
+        spinny.spin(reverse, 100, percent);
     }
 
+    if(spinny.velocity(pct) > 50) {
+      if(gamers.ButtonL2.pressing() || gamers.ButtonL1.pressing()) {
+        spinny.stop();
+      }
+    }
     // ..........................................................................
     // shooter/indexer
     // ..........................................................................
@@ -450,7 +454,7 @@ void usercontrol(void) {
       flywheel.stop(coast);
     }
 
-    if (gamers.ButtonL1.pressing()) {
+    if (gamers.ButtonR1.pressing()) {
       if (!latch) {
         toggle = !toggle;
         latch = true;
@@ -458,9 +462,9 @@ void usercontrol(void) {
     } else {
       latch = false;
     }
-    
+
     // shooter
-    if (gamers.ButtonL2.pressing()) {
+    if (gamers.ButtonR2.pressing()) {
       shooter.set(false);
     } else {
       shooter.set(true);
@@ -488,6 +492,7 @@ void usercontrol(void) {
     wait(20, msec);
 
   } // end of while true
+}
 }
 
 //
