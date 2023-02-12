@@ -458,7 +458,7 @@ void usercontrol(void) {
     } else {
       latch = false;
     }
-
+    
     // shooter
     if (gamers.ButtonL2.pressing()) {
       shooter.set(false);
