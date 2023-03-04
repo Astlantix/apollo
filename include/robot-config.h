@@ -5,16 +5,18 @@ extern brain Brain;
 
 // VEXcode devices
 extern motor fr;
+extern motor mr;
 extern motor br;
 extern motor fl;
+extern motor ml;
 extern motor bl;
 extern motor spinny;
-extern motor_group flywheel;
+extern motor flywheel;
 extern inertial Inertial;
 extern optical Optical;
 extern digital_out shooter;
 extern controller gamers;
-extern motor expansion;
+extern digital_out expansion;
 
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.

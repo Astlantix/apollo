@@ -10,17 +10,19 @@
 // ---- START VEXCODE CONFIGURED DEVICES ----
 // Robot Configuration:
 // [Name]               [Type]        [Port(s)]
-// fr                  motor         12              
-// br                   motor         15              
-// fl                   motor         16              
-// bl                   motor         17              
-// spinny               motor         1               
-// flywheel            motor_group   18, 19          
+// fr                   motor         4             
+// mr                   motor         11
+// br                   motor         2             
+// fl                   motor         7
+// ml                   motor         18       
+// bl                   motor         10        
+// spinny               motor         21               
+// flywheel             motor         1          
 // Inertial             inertial      3               
 // Optical              optical       20              
 // shooter              digital_out   A               
-// gamers          controller                    
-// expansion            motor         2               
+// gamers               controller                    
+// expansion            digital_out   B               
 // ---- END VEXCODE CONFIGURED DEVICES ----
 
 #include "vex.h"
@@ -53,85 +55,128 @@ double longdist = 67 ;
 // ..........................................................................
 int numofautons = 7;
 int autoslct = 1;
+
+// my goofy flywheel pid
+/*void flypid(double target) {
+  double error = target - flywheel.velocity(percent);
+  double kP = 0.1;
+  double kI = 0.0001;
+  double kD = 0.0001;
+  double integral = 0;
+  double derivative = 0;
+  double lastError = 0;
+  double power = 0;
+  while (true) {
+    error = target - flywheel.velocity(percent);
+    integral = integral + error;
+    derivative = error - lastError;
+    power = (error * kP) + (integral * kI) + (derivative * kD);
+    flywheel.spin(forward, power, percent);
+    lastError = error;
+    wait(20, msec);
+  }
+}
+*/
+
+// fly pid by my favorite amogh gupta
+
+double fly_kp = 0.25; //increase speed
+double fly_ki = 0.3; //range of fluctuation
+double fly_kd = 0.00005; //fluctuations
+double speed_margin_pct = 0;
+bool flyescvar = false;
+double speed_margin = 0;
+double speed_volt = 0;
+
+void speed(double targspeedpct) {
+  double avgvolt = 0;
+  double preverror = 0;
+  double error = 0;
+  double errorsum = 0;
+  double derivative = 0;
+  double targspeedvolt = (targspeedpct/100)*12;
+  wait(10,msec);
+
+  while (!flyescvar) {
+    avgvolt = flywheel.voltage();
+    error = targspeedvolt - avgvolt;
+    derivative = preverror - error;
+    errorsum += error;
+    preverror = error;
+    speed_margin = fabs((error/targspeedvolt)*100);
+    speed_volt = error * fly_kp + errorsum * fly_ki + derivative * fly_kd;
+    wait(5,msec);
+
+    if (speed_margin <= speed_margin_pct) {
+      flyescvar = true;
+    }
+    else {
+      flywheel.spin(forward, speed_volt, volt);
+    }
+    wait(10,msec);
+  }
+}
+
+
 // drive code
 void dtcode(double y, double x) {
-  double rightspeed =
-      (gamers.Axis3.position() * -y) + (gamers.Axis1.position() * x);
-  double leftspeed =
-      (gamers.Axis3.position() * -y) - (gamers.Axis1.position() * x);
+  double rightspeed = (gamers.Axis3.position() * -y) + (gamers.Axis1.position() * x);
+  double leftspeed = (gamers.Axis3.position() * -y) - (gamers.Axis1.position() * x);
   fl.spin(forward, leftspeed, percent);
+  ml.spin(forward,leftspeed,percent);
   bl.spin(forward, leftspeed, percent);
   fr.spin(forward, rightspeed, percent);
+  mr.spin(forward,rightspeed,percent);
   br.spin(forward, rightspeed, percent);
 }
 
 
-double error = 0;
-double kp = 0.1;
-double ki = 0.1;
-double kd = 0.1;
-double totalError;
-double preverror = 0;
-double flyspeed;
-double targetspeed = 600/shortdist;
-double Power;
-bool ReadyShoot;
-bool maintainSpeed = true;
 
-int FlyPID(){
-  while(maintainSpeed){
-    flyspeed = flywheel.velocity(percent); 
-    error = targetspeed - flyspeed;
-    if (error <= 0.1){
-      ReadyShoot = true;
-    }
-    else{
-      ReadyShoot = false;
-    }
-    Power += (error*kp + totalError * ki + (error - preverror) * kd)/12;
-    flywheel.spin(forward, Power, volt);
-    preverror = error;
-    totalError += error;
-    vex::task::sleep(20);
-
-  }
-  return 1;
-}
 // ..........................................................................
 // auton functions
 // ..........................................................................
 void setV(double x) {
   fl.setVelocity(x, percent);
+  ml.setVelocity(x,percent);
   bl.setVelocity(x, percent);
   fr.setVelocity(x, percent);
+  mr.setVelocity(x,percent);
   br.setVelocity(x, percent);
 }
 void setcoast() {
   fl.setStopping(coast);
+  ml.setStopping(coast);
   bl.setStopping(coast);
   fr.setStopping(coast);
+  mr.setStopping(coast);
   br.setStopping(coast);
 }
 void For(double x, double y, double z) {
   setV(y);
   fl.spinFor(forward, -x, degrees, false);
+  ml.spinFor(forward, -x, degrees, false);
   bl.spinFor(forward, -x, degrees, false);
   fr.spinFor(forward, -x, degrees, false);
+  mr.spinFor(forward, -x, degrees, false);
   br.spinFor(forward, -x, degrees);
   wait(z, msec);
 }
 void Rev(double x, double y, double z) {
   setV(y);
   fl.spinFor(reverse, -x, degrees, false);
+  ml.spinFor(reverse, -x, degrees, false);
   bl.spinFor(reverse, -x, degrees, false);
   fr.spinFor(reverse, -x, degrees, false);
+  mr.spinFor(reverse, -x, degrees, false);
   br.spinFor(reverse, -x, degrees);
   wait(z, msec);
 }
 void Revang(double x, double y, double z) {
   fr.spin(reverse, -x, percent);
+  mr.spin(reverse, -x, percent);
   bl.spin(reverse, -x, percent);
   fr.spin(reverse, -y, percent);
+  mr.spin(reverse, -y, percent);
   br.spin(reverse, -y, percent);
   wait(z, msec);
   fl.stop();
@@ -142,16 +187,20 @@ void Revang(double x, double y, double z) {
 void Right(double x, double y, double z) {
   setV(y);
   fl.spinFor(forward, -x, degrees, false);
+  ml.spinFor(forward, -x, degrees, false);
   bl.spinFor(forward, -x, degrees, false);
   fr.spinFor(reverse, -x, degrees, false);
+  mr.spinFor(reverse, -x, degrees, false);
   br.spinFor(reverse, -x, degrees);
   wait(z, msec);
 }
 void Left(double x, double y, double z) {
   setV(y);
   fl.spinFor(reverse, -x, degrees, false);
+  ml.spinFor(reverse, -x, degrees, false);
   bl.spinFor(reverse, -x, degrees, false);
   fr.spinFor(forward, -x, degrees, false);
+  mr.spinFor(forward, -x, degrees, false);
   br.spinFor(forward, -x, degrees);
   wait(z, msec);
 }
@@ -430,18 +479,21 @@ void usercontrol(void) {
     // ..........................................................................
     // intake/roller
     // ..........................................................................
-    if(spinny.velocity(pct) < 10) {
+    if(spinny.velocity(percent) < 10 || spinny.velocity(percent) > -10){
       if (gamers.ButtonL2.pressing()) {
         spinny.spin(forward, 100, percent);
-      } else if (gamers.ButtonL1.pressing()) {
+      } 
+      else if (gamers.ButtonL1.pressing()) {
         spinny.spin(reverse, 100, percent);
+      } 
     }
-
-    if(spinny.velocity(pct) > 50) {
-      if(gamers.ButtonL2.pressing() || gamers.ButtonL1.pressing()) {
+    if(spinny.velocity(percent) > 50 || spinny.velocity(percent) < -50){
+      if(gamers.ButtonL1.pressing() && gamers.ButtonL2.pressing()){
         spinny.stop();
       }
     }
+
+
     // ..........................................................................
     // shooter/indexer
     // ..........................................................................
@@ -450,7 +502,8 @@ void usercontrol(void) {
     if (toggle) {
       flywheel.spin(forward, shortdist, percent);
       
-    } else {
+    }
+     else {
       flywheel.stop(coast);
     }
 
@@ -459,14 +512,16 @@ void usercontrol(void) {
         toggle = !toggle;
         latch = true;
       }
-    } else {
+    }
+     else {
       latch = false;
     }
 
     // shooter
     if (gamers.ButtonR2.pressing()) {
       shooter.set(false);
-    } else {
+    } 
+    else {
       shooter.set(true);
     }
 
@@ -475,24 +530,24 @@ void usercontrol(void) {
     // ..........................................................................
     if (gamers.ButtonA.pressing() && gamers.ButtonB.pressing() &&
         gamers.ButtonX.pressing() && gamers.ButtonY.pressing()) {
-      expansion.spin(forward, 50, percent);
+      expansion.set(false);
+      wait(5,msec);
       gamers.Screen.clearScreen();
       gamers.Screen.setCursor(1, 1);
       gamers.Screen.print("expansion fired");
       flywheel.stop(coast);
     }
-    else if (gamers.ButtonUp.pressing() && gamers.ButtonDown.pressing() &&
+   /* else if (gamers.ButtonUp.pressing() && gamers.ButtonDown.pressing() &&
         gamers.ButtonRight.pressing() && gamers.ButtonLeft.pressing()) {
       expansion.spin(reverse, 50, percent);
       spinny.stop(coast);
     }
      else {
       expansion.stop();
-    }
+    }*/
     wait(20, msec);
 
   } // end of while true
-}
 }
 
 //
