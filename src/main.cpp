@@ -33,6 +33,15 @@ using namespace vex;
 // A global instance of competition
 competition Competition;
 bool a = true;
+
+
+
+
+//..........................................................................
+// ODOMETRY
+//..........................................................................
+
+
 // ..........................................................................
 // drivetrain variables
 // ..........................................................................
@@ -53,11 +62,12 @@ double longdist = 67 ;
 // ..........................................................................
 // auton variables
 // ..........................................................................
-int numofautons = 7;
+int numofautons = 5;
 int autoslct = 1;
 
 // my goofy flywheel pid
-/*void flypid(double target) {
+/*
+void flypid(double target) {
   double error = target - flywheel.velocity(percent);
   double kP = 0.1;
   double kI = 0.0001;
@@ -83,7 +93,7 @@ int autoslct = 1;
 double fly_kp = 0.25; //increase speed
 double fly_ki = 0.3; //range of fluctuation
 double fly_kd = 0.00005; //fluctuations
-double speed_margin_pct = 0;
+double speed_margin_pct = 2;
 bool flyescvar = false;
 double speed_margin = 0;
 double speed_volt = 0;
@@ -117,11 +127,30 @@ void speed(double targspeedpct) {
   }
 }
 
+double preverror = 0;
+double errorsum = 0;
+double error = 0;
+double derivative = 0;
+void flypid(double flywheel_target_speed_pct) {
+  double averagevolt = 0;
+  
+  double flywheel_target_speed_volt = (flywheel_target_speed_pct/100)*12;
+
+  averagevolt = flywheel.voltage();
+  error = flywheel_target_speed_volt - averagevolt;
+  derivative = preverror - error;
+  errorsum += error;
+  preverror = error;
+  speed_margin = fabs((error/flywheel_target_speed_volt) * 100);
+  speed_volt =  error * fly_kp + fly_ki * errorsum + fly_kd * derivative;
+  
+  flywheel.spin(fwd, speed_volt, volt);
+}
 
 // drive code
 void dtcode(double y, double x) {
-  double rightspeed = (gamers.Axis3.position() * -y) + (gamers.Axis1.position() * x);
-  double leftspeed = (gamers.Axis3.position() * -y) - (gamers.Axis1.position() * x);
+  double rightspeed = (gamers.Axis3.position() * y) + (gamers.Axis4.position() * -x);
+  double leftspeed = (gamers.Axis3.position() * y) - (gamers.Axis4.position() * -x);
   fl.spin(forward, leftspeed, percent);
   ml.spin(forward,leftspeed,percent);
   bl.spin(forward, leftspeed, percent);
@@ -153,31 +182,31 @@ void setcoast() {
 }
 void For(double x, double y, double z) {
   setV(y);
-  fl.spinFor(forward, -x, degrees, false);
-  ml.spinFor(forward, -x, degrees, false);
-  bl.spinFor(forward, -x, degrees, false);
-  fr.spinFor(forward, -x, degrees, false);
-  mr.spinFor(forward, -x, degrees, false);
-  br.spinFor(forward, -x, degrees);
+  fl.spinFor(forward, x, degrees, false);
+  ml.spinFor(forward, x, degrees, false);
+  bl.spinFor(forward, x, degrees, false);
+  fr.spinFor(forward, x, degrees, false);
+  mr.spinFor(forward, x, degrees, false);
+  br.spinFor(forward, x, degrees);
   wait(z, msec);
 }
 void Rev(double x, double y, double z) {
   setV(y);
-  fl.spinFor(reverse, -x, degrees, false);
-  ml.spinFor(reverse, -x, degrees, false);
-  bl.spinFor(reverse, -x, degrees, false);
-  fr.spinFor(reverse, -x, degrees, false);
-  mr.spinFor(reverse, -x, degrees, false);
-  br.spinFor(reverse, -x, degrees);
+  fl.spinFor(reverse, x, degrees, false);
+  ml.spinFor(reverse, x, degrees, false);
+  bl.spinFor(reverse, x, degrees, false);
+  fr.spinFor(reverse, x, degrees, false);
+  mr.spinFor(reverse, x, degrees, false);
+  br.spinFor(reverse, x, degrees);
   wait(z, msec);
 }
 void Revang(double x, double y, double z) {
-  fr.spin(reverse, -x, percent);
-  mr.spin(reverse, -x, percent);
-  bl.spin(reverse, -x, percent);
-  fr.spin(reverse, -y, percent);
-  mr.spin(reverse, -y, percent);
-  br.spin(reverse, -y, percent);
+  fr.spin(reverse, x, percent);
+  mr.spin(reverse, x, percent);
+  bl.spin(reverse, x, percent);
+  fr.spin(reverse, y, percent);
+  mr.spin(reverse, y, percent);
+  br.spin(reverse, y, percent);
   wait(z, msec);
   fl.stop();
   bl.stop();
@@ -186,22 +215,22 @@ void Revang(double x, double y, double z) {
 }
 void Right(double x, double y, double z) {
   setV(y);
-  fl.spinFor(forward, -x, degrees, false);
-  ml.spinFor(forward, -x, degrees, false);
-  bl.spinFor(forward, -x, degrees, false);
-  fr.spinFor(reverse, -x, degrees, false);
-  mr.spinFor(reverse, -x, degrees, false);
-  br.spinFor(reverse, -x, degrees);
+  fl.spinFor(forward, x, degrees, false);
+  ml.spinFor(forward, x, degrees, false);
+  bl.spinFor(forward, x, degrees, false);
+  fr.spinFor(reverse, x, degrees, false);
+  mr.spinFor(reverse, x, degrees, false);
+  br.spinFor(reverse, x, degrees);
   wait(z, msec);
 }
 void Left(double x, double y, double z) {
   setV(y);
-  fl.spinFor(reverse, -x, degrees, false);
-  ml.spinFor(reverse, -x, degrees, false);
-  bl.spinFor(reverse, -x, degrees, false);
-  fr.spinFor(forward, -x, degrees, false);
-  mr.spinFor(forward, -x, degrees, false);
-  br.spinFor(forward, -x, degrees);
+  fl.spinFor(reverse, x, degrees, false);
+  ml.spinFor(reverse, x, degrees, false);
+  bl.spinFor(reverse, x, degrees, false);
+  fr.spinFor(forward, x, degrees, false);
+  mr.spinFor(forward, x, degrees, false);
+  br.spinFor(forward, x, degrees);
   wait(z, msec);
 }
 void printing() {
@@ -222,12 +251,6 @@ void printing() {
   if (autoslct == 5) {
     gamers.Screen.print("lg+r+hg Right");
   }
-  if (autoslct == 6) {
-    gamers.Screen.print("pl+r+hg Right");
-  }
-  if (autoslct == 7) {
-    gamers.Screen.print("pl+r+hg Left(dont use)");
-  }
 }
 void autoplus() {
   autoslct += 1;
@@ -246,127 +269,100 @@ void sleeping() { wait(15, seconds); }
 
 void shoot(double y, double x, double z) {
   shooter.set(false);
-  flywheel.spin(forward,x,percent);
   wait(100, msec);
   shooter.set(true);
-  flywheel.setVelocity(z, percent);
   wait(y, msec);
 }
 
 // low goal and roller right
 void lgrRight(bool x) {
   setcoast();
-  // shooting 2 preloads into the low goal
-  if (x) {
-    flywheel.spin(forward, lowgoal, percent);
+  if(x){
+    speed(50);
     wait(2500, msec);
     shoot(500, lowgoal, lowgoal);
     shoot(500, lowgoal, lowgoal);
+    x = false;
   }
   flywheel.stop(coast);
-  // moving towards the roller and rolling
-  For(600, 50, 0);
-  Right(270, 20, 0);
-  spinny.spin(reverse, 100, percent);
-  For(105, 20, 70);
+  For(400,20,20);
+  spinny.spin(reverse, 65, percent);
+  Right(200, 20, 0);
+  For(125, 20, 90);
   spinny.stop();
-  Rev(125, 50, 0);
+  Rev(10,0,0);
 }
 // low goal and roller left
-void lgrLeft(double x) {
+void lgrLeft(bool x) {
   setcoast();
-  // move towards the roller and roll
-  spinny.spin(reverse, 100, percent);
-  For(48, 30, 70);
-  spinny.stop();
-  // moving away from roller and shoot 2 preloads
-  Rev(70, 30, 0);
-  Left(360, 30, 0);
-  if (x) {
-    flywheel.spin(forward,shortdist,percent);
-    wait(1000, msec);
-    shoot(500, shortdist, shortdist);
-    shoot(500, shortdist, shortdist);
-    flywheel.stop(coast);
+  if(x){
+    speed(50);
+    wait(2500, msec);
+    shoot(500, lowgoal, lowgoal);
+    shoot(500, lowgoal, lowgoal);
+    x = false;
   }
-}
+  
+    flywheel.stop(coast);
+    //For(150,20,20);
+    spinny.spin(reverse, 65, percent);
+    Left(200, 20, 0);
+    For(140, 20, 90);
+    spinny.stop();
+  }
 
 
 // low goal and roller and high goal right
 void lgrhgRight() {
-  setcoast();
   lgrRight(false);
-  Right(243, 50, 0);
+  Rev(150,20,0);
+  Right(260, 50, 0);
   spinny.spin(forward, 100, percent);
-  For(145, 100, 0);
-  Right(168, 30, 0);
-  flywheel.spin(forward,longdist+18,percent);
-  For(1500, 30, 0);
-  Left(232.5, 50, 1000);
+  For(650,50,1000);
+  Left(200, 20, 0);
   spinny.stop();
-  waitUntil(flywheel.velocity(percent) > 66);
-  shoot(500, 65, longdist);
-  waitUntil(flywheel.velocity(percent) > 66);
-  shoot(300, 100, longdist);
-  waitUntil(flywheel.velocity(percent) > 66);
-  shoot(500, 100, longdist);
-  spinny.stop();
+  speed(100);
+  wait(900,msec);
+  shooter.set(false);
+  wait(100, msec);
+  shooter.set(true);
+  wait(500, msec);
+  shooter.set(false);
+  wait(100, msec);
+  shooter.set(true);
+  wait(500, msec);
+  shooter.set(false);
+  wait(100, msec);
+  shooter.set(true);
+  wait(500, msec);
   flywheel.stop(coast);
-} // low goal and roller and high goal left
+}
+// low goal and roller and high goal left
 void lgrhgLeft() {
-  setcoast();
-  double ldist = 69.5;
   lgrLeft(false);
-  Right(408, 30, 100);
+  Rev(70,20,0);
+  Left(280, 50, 0);
   spinny.spin(forward, 100, percent);
-  For(550, 50, 250);
-  flywheel.spin(forward,ldist,percent);
-  For(1200 - 550, 10, 0);
-  Right(275, 20, 0);
-  waitUntil(flywheel.velocity(percent) > 67);
-  shoot(500, 70, ldist);
-  waitUntil(flywheel.velocity(percent) > 67);
-  shoot(300, 100, ldist);
-  waitUntil(flywheel.velocity(percent) > 67);
-  shoot(300, 100, ldist);
-  flywheel.stop(coast);
+  For(650,100,1000);
+  Right(240, 20, 100);
   spinny.stop();
-}
-//good final right side
-void plrhgRight() {
-  setcoast();
-  lgrRight(false);
-  Right(387, 50, 0);
-  spinny.spin(forward, 100, percent);
-  For(600, 50, 500);
-  flywheel.spin(forward,68,percent);
-  Left(273, 50, 0);
-  waitUntil(flywheel.velocity(percent) > 67);
-  shoot(500, 67, longdist);
-  waitUntil(flywheel.velocity(percent) > 67);
-  shoot(300, 100, longdist);
-  waitUntil(flywheel.velocity(percent) > 67);
-  shoot(500, 100, longdist);
-  spinny.stop();
+  speed(100);
+  wait(500,msec);
+  shooter.set(false);
+  wait(200, msec);
+  shooter.set(true);
+  wait(500, msec);
+  shooter.set(false);
+  wait(200, msec);
+  shooter.set(true);
+  wait(500, msec);
+  shooter.set(false);
+  wait(200, msec);
+  shooter.set(true);
+  wait(500, msec);
   flywheel.stop(coast);
 }
-//good final left side DONT TEST
-void plrhgLeft() {
-  setcoast();
-  lgrLeft(false);
-  spinny.spin(forward, 100, percent);
-  For(601, 80, 500);
-  Right(280,30,500);
-  flywheel.spin(forward,75,percent);
-  waitUntil(flywheel.velocity(percent) >= 70);
-  shoot(500, 70, 68.5);
-  waitUntil(flywheel.velocity(percent) >= 70);
-  shoot(300, 100, 69);
-  waitUntil(flywheel.velocity(percent) >= 69);
-  shoot(300, 100, 68.5);
-  flywheel.stop(coast);
-  spinny.stop();
-}
+
 
 
 
@@ -416,12 +412,6 @@ void autonomous(void) {
   if (autoslct == 5) {
     lgrhgRight();
   }
-  if (autoslct == 6) {
-    plrhgRight();
-  }
-  if (autoslct == 7) {
-    plrhgLeft();
-  }
   a = false;
 }
 
@@ -462,9 +452,9 @@ void usercontrol(void) {
     // drivetrain
     // ..........................................................................
     // changing between modes
-    if (gamers.ButtonUp.pressing()) {
+    if (gamers.ButtonR1.pressing()) {
       dtslowmo = true;
-    } else if (gamers.ButtonDown.pressing()) {
+    } else if (gamers.ButtonR2.pressing()) {
       dtslowmo = false;
     }
     // actual dt code
@@ -473,37 +463,33 @@ void usercontrol(void) {
     }
 
     else {
-      dtcode(1, 0.70);
+      dtcode(1, 0.47);
     }
 
     // ..........................................................................
     // intake/roller
     // ..........................................................................
-    if(spinny.velocity(percent) < 10 || spinny.velocity(percent) > -10){
+    if(spinny.velocity(pct) < 10) {
       if (gamers.ButtonL2.pressing()) {
         spinny.spin(forward, 100, percent);
-      } 
-      else if (gamers.ButtonL1.pressing()) {
+      } else if (gamers.ButtonL1.pressing()) {
         spinny.spin(reverse, 100, percent);
-      } 
     }
-    if(spinny.velocity(percent) > 50 || spinny.velocity(percent) < -50){
-      if(gamers.ButtonL1.pressing() && gamers.ButtonL2.pressing()){
+
+    if(spinny.velocity(pct) > 50) {
+      if(gamers.ButtonL2.pressing() || gamers.ButtonL1.pressing()) {
         spinny.stop();
       }
     }
-
-
     // ..........................................................................
     // shooter/indexer
     // ..........................................................................
     // shooter
 
     if (toggle) {
-      flywheel.spin(forward, shortdist, percent);
-      
-    }
-     else {
+      flypid(75);
+    } 
+    else {
       flywheel.stop(coast);
     }
 
@@ -512,8 +498,8 @@ void usercontrol(void) {
         toggle = !toggle;
         latch = true;
       }
-    }
-     else {
+    } 
+    else {
       latch = false;
     }
 
