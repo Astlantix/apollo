@@ -475,7 +475,7 @@ void usercontrol(void) {
       } else if (gamers.ButtonL1.pressing()) {
         spinny.spin(reverse, 100, percent);
     }
-
+    }
     if(spinny.velocity(pct) > 50) {
       if(gamers.ButtonL2.pressing() || gamers.ButtonL1.pressing()) {
         spinny.stop();
